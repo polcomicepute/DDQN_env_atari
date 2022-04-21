@@ -30,4 +30,4 @@ if __name__ == '__main__':
 
     elif args.eval:
         agent = Agent(config)
-        agent.eval(10)
+        agent.eval(2)

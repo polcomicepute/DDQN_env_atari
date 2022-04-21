@@ -1,7 +1,7 @@
 
 from ast import arg
 from audioop import avg
-from agent import FloatTensor
+# from agent import FloatTensor
 # from memory_hm import ReplayBuffer
 from utils.atari_wrapper import make_atari, wrap_deepmind
 from itertools import count
@@ -35,12 +35,8 @@ class Agent(object):
         self.save_freq = cfg['save_freq']
         # self.eval_freq = cfg['']
         self.target_update = cfg['target_update']
-        # self.modelpath = 
-
-
 
         # * Epsilon
-        # self.epsilon = self.epsilon_decay(0)
         self.start_eps = cfg['epsilon']['start']
         self.end_eps = cfg['epsilon']['end']
         self.decay_step = cfg['epsilon']['decay_step']
@@ -52,9 +48,6 @@ class Agent(object):
         self.target_Qnet = DDQN(input_size=self.state_size[0], output_size=self.n_actions).to(self.device)
         self.target_Qnet.load_state_dict(self.behaviour_Qnet.state_dict())
         self.target_Qnet.eval()
-        #self.behaviour_Qnet.train()
-
-        # self.optimizer = torch.optim.RMSprop(self.behaviour_Qnet.parameters(), lr = 0.00025, momentum = 0.95)
         self.optimizer = torch.optim.Adam(self.behaviour_Qnet.parameters(), lr = float(cfg['optim_params']['lr']))
 
         self.gamma = cfg['gamma']
@@ -71,17 +64,17 @@ class Agent(object):
             eps = self.start_eps - temp*curr_step
         return eps
     
+            # with torch.no_grad():
+            # action = self.env.action_space.sample()
+    
+    
     def get_action(self, eps, state):
         if random.random() >= eps: #get action from argmax_Q
             state = state.to(self.device, dtype= torch.float)
-            # with torch.no_grad():
             action = self.behaviour_Qnet(state.unsqueeze(0)).max(1)[1] #.detach()
         else:
-            # action = self.env.action_space.sample()
             action = torch.tensor([random.randrange(self.n_actions)], device=self.device, dtype=torch.long)
         return action
-
-    
 
 
     def train(self):
@@ -96,14 +89,11 @@ class Agent(object):
         obs = self.env.reset()
         loss =None
 
-        #! Is it right? 
         state = torch.tensor(np.vstack([state[1:], (obs.transpose(2, 0, 1))/255]) )#, dtype = torch.float)
 
         for t in count():
             self.behaviour_Qnet.train()
             # self.target_Qnet.train()
-
-
 
             eps = self.epsilon_decay(t)
             
@@ -117,7 +107,6 @@ class Agent(object):
             epi_reward +=reward
             reward = torch.tensor(reward, device = self.device)
 
-            
             self.replay_buffer.push(state, action, reward, next_state)
 
             if done:
@@ -143,8 +132,6 @@ class Agent(object):
                 state_batch = torch.stack(batch.state).to(self.device, dtype= torch.float)
                 action_batch = torch.stack(batch.action).to(self.device)
                 reward_batch = torch.stack(batch.reward).to(self.device, dtype= torch.float)
-
-
 
                 # * Prediction 
                 pred  = self.behaviour_Qnet(state_batch).gather(1, action_batch).squeeze(1)
@@ -196,12 +183,12 @@ class Agent(object):
 
     def load(self, name):
         modelpath =os.path.join(self.save_dir, name)
-        state_dict = torch.load(modelpath)
+        state_dict = torch.load(modelpath, map_location=torch.device('cpu'))
         self.behaviour_Qnet.load_state_dict(state_dict)
                 
-    def eval(self, n_episodes ):
-        self.behaviour_Qnet.eval()
-        self.target_Qnet.eval()
+    def eval(self, n_episodes):
+        self.behaviour_Qnet.to('cpu').eval()
+        self.target_Qnet.to('cpu').eval()
         self.load('QNetwork.pth.tar')
         epi_reward = 0
         all_rewards =[]
@@ -210,7 +197,6 @@ class Agent(object):
         for i_ep in range(n_episodes):
             state = np.zeros(self.state_size)
             obs = self.env.reset()
-            #! Is it right? 
             state = torch.tensor(np.vstack([state[1:], (obs.transpose(2, 0, 1))/255])).to('cpu')#, dtype = torch.float)
 
             for t in count():

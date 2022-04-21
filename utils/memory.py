@@ -1,6 +1,3 @@
-
-
-
 from collections import namedtuple
 import random
 import numpy as np
@@ -22,3 +19,4 @@ class ReplayBuffer(object):
 
     def __len__(self):
         return len(self.memory)
+
