@@ -1,0 +1,22 @@
+# use_gpu: True
+# seed: 123123
+env_id: 
+batch_size: 32
+gamma: 0.99
+replay_memory: 100000
+replay_start: 5000
+replay_freq: 4
+save_freq: 100000
+hist_len: 4
+target_update: 1000
+epsilon:
+  start: 1
+  end: 0.05
+  decay_step: 30000
+optim_params:
+  lr: 1e-4
+  # momentum: 0.95
+  # eps: 0.01
+log_freq: 1000
+save_freq: 100000
+      
